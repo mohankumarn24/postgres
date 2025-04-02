@@ -96,4 +96,98 @@ Second, skip the first three rows using the OFFSET 3 clause.
 Second, take the next four rows using the LIMIT 4 clause.
 */
 select film_id, title, rental_rate from film order by rental_rate asc limit 10;  -- top N rows
-select film_id, title, rental_rate from film order by rental_rate desc limit 10; -- bottom N rows
+select film_id, title, rental_rate from film order by rental_rate desc limit 10; -- bottom N ROWS
+
+-- fetch clause follows SQL standard (use fetch instead of limit)
+-- use row or rows
+select film_id, title from film order by title fetch first row only;
+select film_id, title from film order by title fetch first 1 row only; -- same as above query
+select film_id, title from film order by title fetch first 5 rows only;
+select film_id, title from film order by title offset 5 rows fetch first 5 rows only; -- skip first five records
+
+-- in operator
+select film_id, title from film where film_id in (1, 2, 3);
+select film_id, title from film where film_id=1 or film_id=2 or film_id=3; -- same as above query
+select first_name, last_name from actor where last_name in ('Allen', 'Chase', 'Davis') order by last_name;
+select
+	payment_id,
+	amount,
+	payment_date
+from
+	payment
+where
+	payment_date::date in ('2007-02-15', '2007-02-16');
+/*
+In this example, the payment_date column has the type timestamp that consists of both date and time parts.
+To match the values in the payment_date column with a list of dates, you need to cast them to date values that have the date part only.
+To do that you use the :: cast operator:
+payment_date::date
+For example, if the timestamp value is 2007-02-15 22:25:46.996577, the cast operator will convert it to 2007-02-15.
+*/
+select film_id, title from film where film_id not in (1, 2, 3) order by film_id;
+select film_id, title from film where film_id != 1 and film_id != 2 and film_id != 3 order by film_id; -- same as above query
+
+-- between operator
+-- value BETWEEN low AND high;       or
+-- value >= low AND value <= high    -- same as above
+-- value NOT BETWEEN low AND high    or
+-- value < low OR value > high		 -- same as above
+select payment_id, amount from payment where payment_id between 17503 and 17505 order by payment_id;
+select payment_id, amount from payment where payment_id not between 17503 and 17505 order by payment_id;
+-- use date in ISO 8601 format, which is YYYY-MM-DD
+select payment_id, amount, payment_date from payment where payment_date between '2007-02-15' and '2007-02-20' and amount > 10 order by payment_date;
+
+-- like operator
+-- % is pattern and _ is wildcard
+select 'Apple' like 'Apple' as result;
+select 'Apple' like 'A%' as result;
+select first_name, last_name from customer where first_name like '%er%' order by first_name;
+select first_name, last_name from customer where first_name like '_her%' order by first_name;
+/*
+The pattern _her% matches any strings that satisfy the following conditions:
+  - The first character can be anything.
+  - The following characters must be 'her'.
+  - There can be any number (including zero) of characters after 'her'.
+*/
+select first_name, last_name from customer where first_name not like 'Jen%' order by first_name;
+select first_name, last_name from customer where first_name ilike 'BAR%';  -- case-insensitive matching
+select first_name, last_name from customer where first_name ~~* 'BAR%';    -- same as above
+/*
+LIKE 	 -> ILIKE
+NOT LIKE -> NOT ILIKE
+~~		 -> LIKE
+~~*      -> ILIKE
+!~~	     -> NOT LIKE
+!~~*     -> NOT ILIKE
+*/
+
+/*
+Sometimes, the data, that you want to match, contains the wildcard characters % and _. For example:
+The rents are now 10% higher than last month
+The new film will have _ in the title
+
+To instruct the LIKE operator to treat the wildcard characters % and _ as regular literal characters, you can use the ESCAPE option in the LIKE operator:
+string LIKE pattern ESCAPE escape_character;
+*/
+
+/*
+create table t(
+   message text
+);
+insert into t(message)
+values('The rents are now 10% higher than last month'),
+      ('The new film will have _ in the title');
+*/
+
+select message from t;
+select * from t where message like '%10$%%' escape '$'; 
+-- In the pattern %10$%%, the first and last % are the wildcard characters whereas the % appears after the escape character $ is a regular character.
+
+-- null operator
+select null = null as result; -- The comparison of NULL with a value will always result in null
+select address, address2 from address where address2 is null;
+select address, address2 from address where address2 is not null;
+/*
+Notice that the address2 is empty, not NULL. This is a good example of bad practice when it comes to storing empty strings and NULL in the same column.
+To fix it, you can use the UPDATE statement to change the empty strings to NULL in the address2 column, which you will learn in the UPDATE tutorial.
+ */
