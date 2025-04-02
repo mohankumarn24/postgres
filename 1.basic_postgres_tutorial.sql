@@ -191,3 +191,358 @@ select address, address2 from address where address2 is not null;
 Notice that the address2 is empty, not NULL. This is a good example of bad practice when it comes to storing empty strings and NULL in the same column.
 To fix it, you can use the UPDATE statement to change the empty strings to NULL in the address2 column, which you will learn in the UPDATE tutorial.
  */
+
+
+
+
+
+-- Section 3. Joining Multiple Tables
+/*
+CREATE TABLE basket_a (
+    a INT PRIMARY KEY,
+    fruit_a VARCHAR (100) NOT NULL
+);
+CREATE TABLE basket_b (
+    b INT PRIMARY KEY,
+    fruit_b VARCHAR (100) NOT NULL
+);
+INSERT INTO basket_a (a, fruit_a)
+VALUES
+    (1, 'Apple'),
+    (2, 'Orange'),
+    (3, 'Banana'),
+    (4, 'Cucumber');
+INSERT INTO basket_b (b, fruit_b)
+VALUES
+    (1, 'Orange'),
+    (2, 'Apple'),
+    (3, 'Watermelon'),
+    (4, 'Pear');
+*/
+
+SELECT * FROM basket_a;
+SELECT * FROM basket_b;
+
+-- inner join (common elements)
+select
+	a,
+	fruit_a,
+	b,
+	fruit_b
+from
+	basket_a
+inner join basket_b
+    on
+	fruit_a = fruit_b;
+
+-- left join (left table + common elements)
+-- LEFT JOIN = LEFT OUTER JOIN
+-- left table + common elements
+select
+	a,
+	fruit_a,
+	b,
+	fruit_b
+from
+	basket_a
+left join basket_b
+   on fruit_a = fruit_b;
+
+-- left table - common
+-- To select rows from the left table that do not have matching rows in the right table, you use the left join with a WHERE clause.
+select
+	a,
+	fruit_a,
+	b,
+	fruit_b
+from
+	basket_a
+left join basket_b
+    on fruit_a = fruit_b
+where
+	b is null;
+
+-- right join (right table + common elements)
+-- RIGHT JOIN = RIGHT OUTER JOIN
+-- right table + common elements
+select
+	a,
+	fruit_a,
+	b,
+	fruit_b
+from
+	basket_a
+right join basket_b 
+	on fruit_a = fruit_b;
+
+-- right table - common elements
+select
+	a,
+	fruit_a,
+	b,
+	fruit_b
+from
+	basket_a
+right join basket_b
+   on fruit_a = fruit_b
+where
+	a is null;
+
+-- full outer join
+-- left table + right table + common elements 
+SELECT
+    a,
+    fruit_a,
+    b,
+    fruit_b
+FROM
+    basket_a
+FULL OUTER JOIN basket_b
+    ON fruit_a = fruit_b;
+
+-- left table + right table - common elements
+SELECT
+    a,
+    fruit_a,
+    b,
+    fruit_b
+FROM
+    basket_a
+FULL JOIN basket_b
+   ON fruit_a = fruit_b
+WHERE a IS NULL OR b IS NULL;
+
+/*
+ * self analysis:
+ * Table A with columns (a varchar(50), b varchar(50))
+ * Table B with columns (b varchar(50), c varchar(50))
+ * Table C with columns (c varchar(50), d varchar(50))
+ * 
+ * |---------------|-----------------|----------------|
+ * | tableA		   | tableB		     | tableC         |
+ * |---------------|-----------------|----------------|
+ * | (p, Lion)	   | (s, Parrot)	 | (v, Zebra)     |
+ * | (q, Tiger)`   | (t, Tiger)`	 | (w, Horse)     |
+ * | (r, Cheetah)` | (u, Cheetah)`~  | (x, Cheetah)~  |
+ * |---------------|-----------------|----------------| 
+ * 
+ * select tablec.d
+ * from tableA
+ * inner join on tableB on tableA.b = tableB.b
+ * inner join on tableC on tableB.c = tableC.c
+ * 
+ * Highlight common elements between A and B 										-> Tiger, Cheetah
+ * Highlight common elements between highlighted B (ie. previous result set) and C 	-> Cheetah
+ * Result is the highlighted element in table C
+ * Common element from 3 circles
+ */
+
+-- self join
+/*
+CREATE TABLE employee (
+  employee_id INT PRIMARY KEY,
+  first_name VARCHAR (255) NOT NULL,
+  last_name VARCHAR (255) NOT NULL,
+  manager_id INT,
+  FOREIGN KEY (manager_id) REFERENCES employee (employee_id) ON DELETE CASCADE
+);
+
+INSERT INTO employee (employee_id, first_name, last_name, manager_id)
+VALUES
+  (1, 'Windy', 'Hays', NULL),
+  (2, 'Ava', 'Christensen', 1),
+  (3, 'Hassan', 'Conner', 1),
+  (4, 'Anna', 'Reeves', 2),
+  (5, 'Sau', 'Norman', 2),
+  (6, 'Kelsie', 'Hays', 3),
+  (7, 'Tory', 'Goff', 3),
+  (8, 'Salley', 'Lester', 3);
+  
+  
+*/
+
+SELECT * FROM employee;
+
+SELECT
+  e.first_name || ' ' || e.last_name employee,
+  m.first_name || ' ' || m.last_name manager
+FROM
+  employee e
+  INNER JOIN employee m ON m.employee_id = e.manager_id
+ORDER BY
+  manager;
+
+SELECT
+  e.first_name || ' ' || e.last_name employee,
+  m.first_name || ' ' || m.last_name manager
+FROM
+  employee e
+  LEFT JOIN employee m ON m.employee_id = e.manager_id
+ORDER BY
+  manager;
+/*
+This query references the employees table twice, one as the employee and the other as the manager. It uses table aliases e for the employee and m for the manager.
+The join predicate finds the employee/manager pair by matching values in the employee_id and manager_id columns.
+Notice that the top manager does not appear on the output.
+To include the top manager in the result set, you use the LEFT JOIN instead of INNER JOIN clause as shown in the following query:
+*/
+
+-- cross join
+/*
+DROP TABLE IF EXISTS T1;
+DROP TABLE IF EXISTS T2;
+CREATE TABLE
+  T1 (LABEL CHAR(1) PRIMARY KEY);
+CREATE TABLE
+  T2 (score INT PRIMARY KEY);
+INSERT into T1 (LABEL) VALUES ('A'), ('B');
+INSERT into T2 (score) values (1), (2), (3);
+*/
+
+SELECT *
+FROM T1
+CROSS JOIN T2
+order by t1.label asc;
+
+-- natural join
+
+
+-- Section 4. Grouping Data
+-- group by
+-- The following query uses the GROUP BY clause to retrieve the total payment paid by each customer:
+SELECT
+  customer_id,
+  SUM (amount)
+FROM
+  payment
+GROUP BY
+  customer_id
+ORDER BY
+  customer_id
+limit 5;
+
+-- The following statement uses the ORDER BY clause with GROUP BY clause to sort the groups by total payments:
+SELECT
+  customer_id,
+  SUM (amount)
+FROM
+  payment
+GROUP BY
+  customer_id
+ORDER BY
+  SUM (amount) DESC;
+
+-- In this example, we join the payment table with the customer table using an inner join to get the customer names and group customers by their names.
+SELECT
+  first_name || ' ' || last_name full_name,
+  SUM (amount) amount
+FROM
+  payment
+  INNER JOIN customer USING (customer_id)
+GROUP BY
+  full_name
+ORDER BY
+  amount DESC;
+
+-- In this example, the GROUP BY clause divides the rows in the payment table into groups and groups them by value in the staff_id column. 
+-- For each group, it counts the number of rows using the COUNT() function.
+SELECT
+	staff_id,
+	COUNT (payment_id)
+FROM
+	payment
+GROUP BY
+	staff_id;
+
+-- In this example, the GROUP BY clause divides the rows in the payment table by the values in the customer_id and staff_id columns. 
+-- For each group of (customer_id, staff_id), the SUM() calculates the total amount.
+SELECT
+  customer_id,
+  staff_id,
+  SUM(amount)
+FROM
+  payment
+GROUP BY
+  staff_id,
+  customer_id
+ORDER BY
+  customer_id;
+
+-- Since the values in the payment_date column are timestamps, we cast them to date values using the cast operator ::
+SELECT
+  payment_date::date payment_date,
+  SUM(amount) sum
+FROM
+  payment
+GROUP BY
+  payment_date::date
+ORDER BY
+  payment_date DESC;
+
+-- having operator
+-- The following query uses the GROUP BY clause with the SUM() function to find the total payment of each customer:
+SELECT
+  customer_id,
+  SUM (amount) amount
+FROM
+  payment
+GROUP BY
+  customer_id
+ORDER BY
+  amount DESC;
+
+-- The following statement adds the HAVINGclause to select the only customers who have been spending more than 200
+SELECT
+  customer_id,
+  SUM (amount) amount
+FROM
+  payment
+GROUP BY
+  customer_id
+HAVING
+  SUM (amount) > 200
+ORDER BY
+  amount DESC;
+
+-- The following query uses the GROUP BY clause to find the number of customers per store:
+SELECT
+  store_id,
+  COUNT (customer_id)
+FROM
+  customer
+GROUP BY
+  store_id;
+
+-- The following statement adds the HAVING clause to select a store that has more than 300 customers
+SELECT
+  store_id,
+  COUNT (customer_id)
+FROM
+  customer
+GROUP BY
+  store_id
+HAVING
+  COUNT (customer_id) > 300;
+
+
+
+
+
+
+
+
+
+
+-- TODO:
+-- Section 5. Set Operations
+-- Section 7. Subquery
+-- Section 9. Modifying Data
+-- Section 10. Transactions
+-- Section 11. Import & Export Data
+-- Section 12. Managing Tables
+-- Section 13. PostgreSQL Constraints
+-- Section 14. PostgreSQL Data Types in Depth
+
+-- Views
+-- Indexes
+-- Functions
