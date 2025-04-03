@@ -90,6 +90,7 @@ select title, rental_rate from film where rental_rate = 0.99 or rental_rate = 2.
 -- limit clause
 select film_id, title, release_year from film order by film_id limit 5;
 select film_id, title, release_year from film order by film_id limit 4 offset 3;
+select film_id, title, release_year from film order by film_id offset 3 limit 4; -- same as above
 /*
 First, sort films by film id in ascending order.
 Second, skip the first three rows using the OFFSET 3 clause.
@@ -136,6 +137,7 @@ select payment_id, amount from payment where payment_id between 17503 and 17505 
 select payment_id, amount from payment where payment_id not between 17503 and 17505 order by payment_id;
 -- use date in ISO 8601 format, which is YYYY-MM-DD
 select payment_id, amount, payment_date from payment where payment_date between '2007-02-15' and '2007-02-20' and amount > 10 order by payment_date;
+select payment_id, amount, payment_date from payment where payment_date::date between '2007-02-15' and '2007-02-20' and amount > 10 order by payment_date;
 
 -- like operator
 -- % is pattern and _ is wildcard
@@ -181,7 +183,7 @@ values('The rents are now 10% higher than last month'),
 
 select message from t;
 select * from t where message like '%10$%%' escape '$'; 
--- In the pattern %10$%%, the first and last % are the wildcard characters whereas the % appears after the escape character $ is a regular character.
+-- In the pattern %10$%%, the first and last % are the wildcard characters (like '%10%') whereas the % appears after the escape character $ is a regular character.
 
 -- null operator
 select null = null as result; -- The comparison of NULL with a value will always result in null
@@ -311,6 +313,38 @@ FROM
 FULL JOIN basket_b
    ON fruit_a = fruit_b
 WHERE a IS NULL OR b IS NULL;
+
+
+/* All joins summarized
+--inner join
+SELECT a, fruit_a, b, fruit_b
+FROM basket_a 
+INNER JOIN basket_b 
+ON fruit_a = fruit_b;
+
+--left join or left outer join
+SELECT a, fruit_a, b, fruit_b
+FROM basket_a 
+LEFT JOIN basket_b 
+ON fruit_a = fruit_b;
+-- WHERE b IS NULL; -- to skip common elements
+
+--right join or right outer join
+SELECT a, fruit_a, b, fruit_b
+FROM basket_a 
+RIGHT JOIN basket_b 
+ON fruit_a = fruit_b;
+-- WHERE a IS NULL; -- to skip common elements
+
+--full outer join
+SELECT a, fruit_a, b, fruit_b
+FROM basket_a 
+FULL OUTER JOIN basket_b 
+ON fruit_a = fruit_b;
+-- WHERE a IS NULL OR b IS NULL; -- to skip common elements
+ */
+
+
 
 /*
  * self analysis:
