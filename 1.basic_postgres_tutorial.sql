@@ -1861,11 +1861,682 @@ ALTER TABLE updated_vendors
 ADD PRIMARY KEY (vendor_id);
 
 
+-- foreign key
+DROP TABLE IF EXISTS customers1;
+DROP TABLE IF EXISTS contacts1;
+-- parent table. Each customer can have zero or many contacts
+-- Each customer has zero or many contacts and each contact belongs to zero or one customer.
+CREATE TABLE customers1(
+   customer_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_name VARCHAR(255) NOT NULL,
+   PRIMARY KEY(customer_id)
+);
+-- child table
+CREATE TABLE contacts1(
+   contact_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_id INT,
+   contact_name VARCHAR(255) NOT NULL,
+   phone VARCHAR(15),
+   email VARCHAR(100),
+   PRIMARY KEY(contact_id),
+   CONSTRAINT fk_customer
+      FOREIGN KEY(customer_id)
+        REFERENCES customers1(customer_id)
+);
+
+INSERT INTO customers1(customer_name)
+VALUES('BlueBird Inc'),
+      ('Dolphin LLC');
+
+INSERT INTO contacts1(customer_id, contact_name, phone, email)
+VALUES(1,'John Doe','(408)-111-1234','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (1,'Jane Doe','(408)-111-1235','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (2,'David Wright','(408)-222-1234','[[email protected]](../cdn-cgi/l/email-protection.html)');
+
+DELETE FROM customers
+WHERE customer_id = 1; --error
+
+-- set null
+DROP TABLE IF EXISTS contacts1;
+DROP TABLE IF EXISTS customers1;
+CREATE TABLE customers1(
+   customer_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_name VARCHAR(255) NOT NULL,
+   PRIMARY KEY(customer_id)
+);
+CREATE TABLE contacts1(
+   contact_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_id INT,
+   contact_name VARCHAR(255) NOT NULL,
+   phone VARCHAR(15),
+   email VARCHAR(100),
+   PRIMARY KEY(contact_id),
+   CONSTRAINT fk_customer
+      FOREIGN KEY(customer_id)
+	  REFERENCES customers1(customer_id)
+	  ON DELETE SET NULL
+);
+
+INSERT INTO customers1(customer_name)
+VALUES('BlueBird Inc'),
+      ('Dolphin LLC');
+
+INSERT INTO contacts1(customer_id, contact_name, phone, email)
+VALUES(1,'John Doe','(408)-111-1234','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (1,'Jane Doe','(408)-111-1235','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (2,'David Wright','(408)-222-1234','[[email protected]](../cdn-cgi/l/email-protection.html)');
+
+DELETE FROM customers1
+WHERE customer_id = 1;
 
 
+-- ON DELETE CASCADE
+DROP TABLE IF EXISTS contacts1;
+DROP TABLE IF EXISTS customers1;
+
+CREATE TABLE customers1(
+   customer_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_name VARCHAR(255) NOT NULL,
+   PRIMARY KEY(customer_id)
+);
+
+CREATE TABLE contacts1(
+   contact_id INT GENERATED ALWAYS AS IDENTITY,
+   customer_id INT,
+   contact_name VARCHAR(255) NOT NULL,
+   phone VARCHAR(15),
+   email VARCHAR(100),
+   PRIMARY KEY(contact_id),
+   CONSTRAINT fk_customer
+      FOREIGN KEY(customer_id)
+	  REFERENCES customers1(customer_id)
+	  ON DELETE CASCADE
+);
+
+INSERT INTO customers1(customer_name)
+VALUES('BlueBird Inc'),
+      ('Dolphin LLC');
+
+INSERT INTO contacts1(customer_id, contact_name, phone, email)
+VALUES(1,'John Doe','(408)-111-1234','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (1,'Jane Doe','(408)-111-1235','[[email protected]](../cdn-cgi/l/email-protection.html)'),
+      (2,'David Wright','(408)-222-1234','[[email protected]](../cdn-cgi/l/email-protection.html)');
+
+DELETE FROM customers1
+WHERE customer_id = 1;
+
+-- delete cascade
+drop table departments;
+drop table employees2;
+CREATE TABLE departments (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL
+);
+
+CREATE TABLE employees2 (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    department_id INT NOT NULL,
+    FOREIGN KEY(department_id)
+       REFERENCES departments(id)
+       ON DELETE CASCADE
+);
+
+INSERT INTO departments (name)
+VALUES
+    ('Engineering'),
+    ('Sales')
+RETURNING *;
+
+INSERT INTO employees2 (name, department_id)
+VALUES
+    ('John Doe', 1),
+    ('Jane Smith', 1),
+    ('Michael Johnson', 2)
+RETURNING *;
+
+DELETE FROM departments
+WHERE id = 1;
+
+-- CHECK constraints
+--  Defining PostgreSQL CHECK constraint for a new table
+CREATE TABLE employees3 (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR (50) NOT NULL,
+  last_name VARCHAR (50) NOT NULL,
+  birth_date DATE NOT NULL,
+  joined_date DATE NOT NULL,
+  salary numeric CHECK(salary > 0)
+);
+
+INSERT INTO employees3 (first_name, last_name, birth_date, joined_date, salary)
+VALUES ('John', 'Doe', '1972-01-01', '2015-07-01', -100000);
+
+-- Adding PostgreSQL CHECK constraints for existing tables
+ALTER TABLE employees3
+ADD CONSTRAINT joined_date_check
+CHECK ( joined_date >  birth_date );
+
+INSERT INTO employees3 (first_name, last_name, birth_date, joined_date, salary)
+VALUES ('John', 'Doe', '1990-01-01', '1989-01-01', 100000);
+
+-- Using functions in CHECK constraints
+ALTER TABLE employees3
+ADD CONSTRAINT first_name_check
+CHECK ( LENGTH(TRIM(first_name)) >= 3);
+
+INSERT INTO employees3 (first_name, last_name, birth_date, joined_date, salary)
+VALUES ('Ab', 'Doe', '1990-01-01', '2008-01-01', 100000);
+
+-- Removing a CHECK constraint example
+ALTER TABLE employees3
+DROP CONSTRAINT joined_date_check;
+
+-- Unique contraint
+CREATE TABLE person (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR (50),
+  last_name VARCHAR (50),
+  email VARCHAR (50) UNIQUE
+);
+/* same as above
+CREATE TABLE person (
+  id SERIAL PRIMARY KEY,
+  first_name VARCHAR (50),
+  last_name VARCHAR (50),
+  email VARCHAR (50),
+  UNIQUE(email)
+);
+ */
+INSERT INTO person(first_name,last_name,email)
+VALUES('john','doe','john@gmail.com');
+INSERT INTO person(first_name,last_name,email)
+VALUES('jack','doe','john@gmail.com'); -- error
+
+-- Creating a UNIQUE constraint on multiple columns
+/*
+CREATE TABLE t4 (
+    c1 data_type,
+    c2 data_type,
+    c3 data_type,
+    UNIQUE (c2, c3)
+);
+*/
+
+-- Adding unique constraints using a unique index
+CREATE TABLE equipment (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR (50) NOT NULL,
+  equip_id VARCHAR (16) NOT NULL
+);
+-- create a unique index based on the equip_id column
+CREATE UNIQUE INDEX CONCURRENTLY equipment_equip_id
+ON equipment (equip_id);
+-- add a unique constraint to the equipment table using the equipment_equip_id index
+ALTER TABLE equipment
+ADD CONSTRAINT unique_equip_id
+UNIQUE USING INDEX equipment_equip_id;
+
+
+-- NOT NULL constraints
+/*
+CREATE TABLE invoices(
+  id SERIAL PRIMARY KEY,
+  product_id INT NOT NULL,
+  qty numeric NOT NULL CHECK(qty > 0),
+  net_price numeric CHECK(net_price > 0)
+);
+*/
+
+CREATE TABLE production_orders (
+	id SERIAL PRIMARY KEY,
+	description VARCHAR (40) NOT NULL,
+	material_id VARCHAR (16),
+	qty NUMERIC,
+	start_date DATE,
+	finish_date DATE
+);
+
+INSERT INTO production_orders (description)
+VALUES('Make for Infosys inc.');
+
+UPDATE production_orders
+SET qty = 1;
+
+ALTER TABLE production_orders
+ALTER COLUMN qty
+SET NOT NULL;
+
+UPDATE production_orders
+SET material_id = 'ABC',
+    start_date = '2015-09-01',
+    finish_date = '2015-09-01';
+
+ALTER TABLE production_orders
+ALTER COLUMN material_id SET NOT NULL,
+ALTER COLUMN start_date SET NOT NULL,
+ALTER COLUMN finish_date SET NOT NULL;
+
+UPDATE production_orders
+SET qty = NULL; -- error
+
+-- The special case of NOT NULL constraint
+CREATE TABLE users (
+  id serial PRIMARY KEY,
+  username VARCHAR (50),
+  password VARCHAR (50),
+  email VARCHAR (50),
+  CONSTRAINT username_email_notnull CHECK (
+    NOT (
+      (
+        username IS NULL
+        OR username = ''
+      )
+      AND (
+        email IS NULL
+        OR email = ''
+      )
+    )
+  )
+);
+
+INSERT INTO users (username, email)
+VALUES
+	('user1', NULL),
+	(NULL, '[[email protected]](../cdn-cgi/l/email.html)'),
+	('user2', '[[email protected]](../cdn-cgi/l/email.html)'),
+	('user3', '');
+
+INSERT INTO users (username, email)
+VALUES
+	(NULL, NULL),
+	(NULL, ''),
+	('', NULL),
+	('', '');
+
+
+-- default constraint
+-- Basic PostgreSQL default value examples
+CREATE TABLE products(
+   id SERIAL PRIMARY KEY,
+   name VARCHAR(255) NOT NULL,
+   price DECIMAL(19,2) NOT NULL DEFAULT 0
+);
+
+INSERT INTO products(name)
+VALUES('Laptop')
+RETURNING *;
+
+INSERT INTO products(name, price)
+VALUES
+   ('Smartphone', DEFAULT)
+RETURNING *;
+
+-- Using DEFAULT constraint with TIMESTAMP columns
+CREATE TABLE logs(
+   id SERIAL PRIMARY KEY,
+   message TEXT NOT NULL,
+   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+INSERT INTO logs(message)
+VALUES('Started the server')
+RETURNING *;
+
+-- Using DEFAULT constraint with JSONB type
+CREATE TABLE settings(
+   id SERIAL PRIMARY KEY,
+   name VARCHAR(50) NOT NULL,
+   configuration JSONB DEFAULT '{}'
+);
+
+INSERT INTO settings(name)
+VALUES('global')
+RETURNING *;
+
+-- to remove the default JSONB value from the configuration column of the settings table, you can use the following ALTER TABLE statement:
+ALTER TABLE settings
+ALTER COLUMN configuration
+DROP DEFAULT;
 
 -- Section 14. PostgreSQL Data Types in Depth
+
 -- Section 15. Conditional Expressions & Operators
+-- case
+-- general CASE example
+SELECT
+  title,
+  length,
+  CASE 
+	  WHEN length > 0 AND length <= 50 THEN 'Short' 
+	  WHEN length > 50 AND length <= 120 THEN 'Medium' 
+	  WHEN length > 120 THEN 'Long' END duration
+FROM
+  film
+ORDER BY
+  title;
+
+-- Using CASE with an aggregate function example
+/*
+If the rental rate is 0.99, the film is economic.
+If the rental rate is 1.99, the film is mass.
+If the rental rate is 4.99, the film is premium.
+We applied the SUM function to calculate the total of films for each price segment
+ */
+SELECT
+  SUM (
+    CASE 
+	    WHEN rental_rate = 0.99 THEN 1 ELSE 0 END
+  ) AS "Economy",
+  SUM (
+    CASE 
+	    WHEN rental_rate = 2.99 THEN 1 ELSE 0 END
+  ) AS "Mass",
+  SUM (
+    CASE 
+	    WHEN rental_rate = 4.99 THEN 1 ELSE 0 END
+  ) AS "Premium"
+FROM
+  film;
+
+-- Simple PostgreSQL CASE expression example
+SELECT title,
+       rating,
+       CASE rating
+           WHEN 'G' THEN 'General Audiences'
+           WHEN 'PG' THEN 'Parental Guidance Suggested'
+           WHEN 'PG-13' THEN 'Parents Strongly Cautioned'
+           WHEN 'R' THEN 'Restricted'
+           WHEN 'NC-17' THEN 'Adults Only'
+       END rating_description
+FROM film
+ORDER BY title;
+
+-- Using simple PostgreSQL CASE expression with aggregate function example
+SELECT
+  SUM(CASE rating WHEN 'G' THEN 1 ELSE 0 END) "General Audiences",
+  SUM(
+    CASE rating WHEN 'PG' THEN 1 ELSE 0 END
+  ) "Parental Guidance Suggested",
+  SUM(
+    CASE rating WHEN 'PG-13' THEN 1 ELSE 0 END
+  ) "Parents Strongly Cautioned",
+  SUM(CASE rating WHEN 'R' THEN 1 ELSE 0 END) "Restricted",
+  SUM(
+    CASE rating WHEN 'NC-17' THEN 1 ELSE 0 END
+  ) "Adults Only"
+FROM
+  film;
+
+-- COALESCE
+-- The COALESCE() function accepts a list of arguments and returns the first non-null argument.
+SELECT COALESCE (1, 2);
+SELECT COALESCE (NULL, 2 , 1);
+-- For example, if you want to display the excerpt from a blog post and the excerpt is not provided, you can use the first 150 characters of the content of the post.
+-- SELECT COALESCE (excerpt, LEFT(content, 150)) from posts;
+
+-- Using the COALESCE() function with table data
+CREATE TABLE items (
+  id SERIAL PRIMARY KEY,
+  product VARCHAR (100) NOT NULL,
+  price NUMERIC NOT NULL,
+  discount NUMERIC
+);
+
+INSERT INTO items (product, price, discount)
+VALUES
+  ('A', 1000, 10),
+  ('B', 1500, 20),
+  ('C', 800, 5),
+  ('D', 500, NULL);
+
+SELECT
+  product,
+  (price - discount) AS net_price
+FROM
+  items;
+
+SELECT
+  product,
+  (
+    price - COALESCE(discount, 0)
+  ) AS net_price
+FROM
+  items;
+
+SELECT
+  product,
+  (
+    price - CASE WHEN discount IS NULL THEN 0 ELSE discount END
+  ) AS net_price
+FROM
+  items;
+
+-- NULLIF 
+/*
+ * NULLIF(argument_1,argument_2);
+ * The NULLIF function returns a null value if argument_1 equals to argument_2, otherwise, it returns argument_1
+ */
+
+-- Basic PostgreSQL NULLIF examples
+SELECT NULLIF (1, 1); -- return null
+SELECT NULLIF (1, 0); -- return 1
+SELECT NULLIF ('A', 'B');
+
+-- Using the NULLIF function with table data
+CREATE TABLE posts (
+  id serial primary key,
+  title VARCHAR (255) NOT NULL,
+  excerpt VARCHAR (150),
+  body TEXT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP
+);
+
+INSERT INTO posts (title, excerpt, body)
+VALUES
+      ('test post 1','test post excerpt 1','test post body 1'),
+      ('test post 2','','test post body 2'),
+      ('test post 3', null ,'test post body 3')
+RETURNING *;
+
+-- use the COALESCE function to handle NULL in the body column
+SELECT
+  id,
+  title,
+  COALESCE (excerpt, LEFT(body, 40))
+FROM
+  posts;	
+
+-- Unfortunately, there is a mix between null value and ” (empty) in the excerpt column. To address this issue, you can use the NULLIF function:
+SELECT
+  id,
+  title,
+  COALESCE (NULLIF (excerpt, ''), LEFT (body, 40))
+FROM
+  posts;
+
+-- Using NULLIF() function to prevent division-by-zero
+CREATE TABLE members (
+  id serial PRIMARY KEY,
+  first_name VARCHAR (50) NOT NULL,
+  last_name VARCHAR (50) NOT NULL,
+  gender SMALLINT NOT NULL -- 1: male, 2 female
+);
+
+INSERT INTO members (first_name, last_name, gender)
+VALUES
+  ('John', 'Doe', 1),
+  ('David', 'Dave', 1),
+  ('Bush', 'Lily', 2)
+RETURNING *;
+
+SELECT
+  (
+    SUM (CASE WHEN gender = 1 THEN 1 ELSE 0 END) / SUM (CASE WHEN gender = 2 THEN 1 ELSE 0 END)
+  ) * 100 AS "Male/Female ratio"
+FROM
+  members;
+
+DELETE FROM members
+WHERE gender = 2;
+
+SELECT
+  (
+    SUM (CASE WHEN gender = 1 THEN 1 ELSE 0 END) / SUM (CASE WHEN gender = 2 THEN 1 ELSE 0 END)
+  ) * 100 AS "Male/Female ratio"
+FROM
+  members; -- error
+  
+  SELECT
+  (
+    SUM (CASE WHEN gender = 1 THEN 1 ELSE 0 END) / NULLIF (
+      SUM (CASE WHEN gender = 2 THEN 1 ELSE 0 END),
+      0
+    )
+  ) * 100 AS "Male/Female ratio"
+FROM
+  members;
+  
+-- CAST() function and cast operator (::)
+-- Cast a string to an integer example
+SELECT
+  CAST ('100' AS INTEGER);
+SELECT
+  CAST ('10C' AS INTEGER); -- error
+  
+-- Cast a string to a date example
+SELECT
+   CAST ('2015-01-01' AS DATE),
+   CAST ('01-OCT-2015' AS DATE);
+
+-- Cast a string to a double example
+SELECT
+	CAST ('10.2' AS DOUBLE); -- error. To fix "type "double" does not exist" error, you need to use DOUBLE PRECISION instead of DOUBLE as follows:
+SELECT
+   CAST ('10.2' AS DOUBLE PRECISION);
+
+-- Cast a string to a boolean example
+SELECT
+   CAST('true' AS BOOLEAN),
+   CAST('false' as BOOLEAN),
+   CAST('T' as BOOLEAN),
+   CAST('F' as BOOLEAN);
+
+-- Cast a string to a timestamp example
+SELECT '2019-06-15 14:30:20'::timestamp;
+
+-- Cast a string to an interval example
+SELECT
+  '15 minute' :: interval,
+  '2 hour' :: interval,
+  '1 day' :: interval,
+  '2 week' :: interval,
+  '3 month' :: interval;
+
+-- Cast a timestamp to a date example
+SELECT CAST('2024-02-01 12:34:56' AS DATE);
+
+-- Cast an interval to text
+SELECT CAST('30 days' AS TEXT);
+
+-- Cast a JSON to a JSONB
+SELECT CAST('{"name": "John"}' AS JSONB);
+
+-- Cast a double precision to an integer
+SELECT CAST(9.99 AS INTEGER);
+
+-- Cast an array to a text
+SELECT CAST(ARRAY[1, 2, 3] AS TEXT);
+
+-- Cast text to an array
+SELECT '{1,2,3}'::INTEGER[] AS result_array;
+
+-- Using CAST with table data example
+CREATE TABLE ratings (
+  id SERIAL PRIMARY KEY,
+  rating VARCHAR (1) NOT NULL
+);
+
+INSERT INTO ratings (rating)
+VALUES
+  ('A'),
+  ('B'),
+  ('C');
+
+INSERT INTO ratings (rating)
+VALUES
+  (1),
+  (2),
+  (3);
+
+-- explain
+-- https://neon.tech/postgresql/postgresql-tutorial/postgresql-explain
+EXPLAIN 
+	SELECT * FROM film;
+EXPLAIN 
+	SELECT * FROM film WHERE film_id = 100;
+EXPLAIN 
+	(COSTS FALSE) select * from film where film_id = 100;
+EXPLAIN 
+	SELECT COUNT(*) FROM film;
+
+EXPLAIN
+SELECT
+    f.film_id,
+    title,
+    name category_name
+FROM
+    film f
+    INNER JOIN film_category fc
+        ON fc.film_id = f.film_id
+    INNER JOIN category c
+        ON c.category_id = fc.category_id
+ORDER BY
+    title;
+
+EXPLAIN ANALYZE
+    SELECT
+        f.film_id,
+        title,
+        name category_name
+    FROM
+        film f
+        INNER JOIN film_category fc
+            ON fc.film_id = f.film_id
+        INNER JOIN category c
+            ON c.category_id = fc.category_id
+    ORDER BY
+        title;
+
+-- distinct on
+-- https://neon.tech/postgresql/postgresql-tutorial/postgresql-distinct-on
+CREATE TABLE student_scores (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(50) NOT NULL,
+  subject VARCHAR(50) NOT NULL,
+  score INTEGER NOT NULL
+);
+
+INSERT INTO student_scores (name, subject, score)
+VALUES
+  ('Alice', 'Math', 90),
+  ('Bob', 'Math', 85),
+  ('Alice', 'Physics', 92),
+  ('Bob', 'Physics', 88),
+  ('Charlie', 'Math', 95),
+  ('Charlie', 'Physics', 90);
+
+-- The DISTINCT ON clause allows you to retrieve unique rows based on specified columns
+SELECT
+  DISTINCT ON (name) name,
+  subject,
+  score
+FROM
+  student_scores
+ORDER BY
+  name,
+  score DESC;
 
 -- Views
 -- Indexes
