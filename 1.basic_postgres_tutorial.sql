@@ -569,9 +569,621 @@ HAVING
 
 -- TODO:
 -- Section 5. Set Operations
+-- union
+-- union all
+-- The UNION operator removes all duplicate rows from the combined data set. To retain the duplicate rows, you use the UNION ALL instead.
+/*
+CREATE TABLE top_rated_films(
+  title VARCHAR NOT NULL,
+  release_year SMALLINT
+);
+CREATE TABLE most_popular_films(
+  title VARCHAR NOT NULL,
+  release_year SMALLINT
+);
+INSERT INTO top_rated_films(title, release_year)
+VALUES
+   ('The Shawshank Redemption', 1994),
+   ('The Godfather', 1972),
+   ('The Dark Knight', 2008),
+   ('12 Angry Men', 1957);
+INSERT INTO most_popular_films(title, release_year)
+VALUES
+  ('An American Pickle', 2020),
+  ('The Godfather', 1972),
+  ('The Dark Knight', 2008),
+  ('Greyhound', 2020);
+*/
+
+SELECT * FROM top_rated_films;
+SELECT * FROM most_popular_films;
+
+-- union: Use the UNION to combine result sets of two queries and return distinct rows
+-- get all elements from tableA and tableB without duplicates
+SELECT * FROM top_rated_films
+UNION
+SELECT * FROM most_popular_films;
+
+-- union all: Use the UNION ALL to combine the result sets of two queries but retain the duplicate rows
+-- get all elements from tableA and tableB with duplicates
+SELECT * FROM top_rated_films
+UNION ALL
+SELECT * FROM most_popular_films;
+
+SELECT * FROM top_rated_films
+UNION ALL
+SELECT * FROM most_popular_films
+ORDER BY title;
+
+
+-- intersect: retuns common elements
+-- The following example uses the INTERSECT operator to retrieve the popular films that are also top-rated:
+-- get common elements from tableA and tableB
+SELECT *
+FROM most_popular_films
+INTERSECT
+SELECT *
+FROM top_rated_films;
+
+SELECT *
+FROM most_popular_films
+INTERSECT
+SELECT *
+FROM top_rated_films
+ORDER BY release_year;
+
+-- except: The EXCEPT operator returns distinct rows from the first (left) query that are not in the second (right) query.
+-- The following statement uses the EXCEPT operator to find the top-rated films that are not popular:
+-- get elements from tableA that are not in tableB
+SELECT * FROM top_rated_films
+EXCEPT
+SELECT * FROM most_popular_films;
+
+SELECT * FROM top_rated_films
+EXCEPT
+SELECT * FROM most_popular_films
+ORDER BY title;
+
 -- Section 7. Subquery
--- Section 9. Modifying Data
+-- PostgreSQL executes the subquery first to get the country id and uses it for the WHERE clause to retrieve the cities.
+-- subquery returns single result
+-- this is the subquery
+select country_id from country where country = 'United States';
+-- use qubquery in main query
+select city from city
+where country_id = (select country_id from country where country = 'United States') 
+ORDER by city;
+
+-- subquery returns multiple results
+-- this is the subquery
+select film_id
+from film_category
+inner join category USING(category_id)
+where name='Action';
+
+-- Second, use the query above as a subquery to retrieve the film title from the film table
+select film_id, title from film
+WHERE
+  film_id IN (
+    select film_id
+    from film_category
+    INNER JOIN category USING(category_id)
+    where name = 'Action')
+ORDER by film_id;
+
+-- correlated subquery
+-- It is used to perform a query that depends on the values of the current row being processed.
+-- this is the subquery
+SELECT AVG(length)
+FROM film f
+WHERE rating = f.rating;
+-- use the subquery in main query
+SELECT film_id, title, length, rating
+FROM film f
+WHERE length > (
+    SELECT AVG(length)
+    FROM film
+    WHERE rating = f.rating
+);
+
+-- any operator
+-- ANY operator compares a value with a set of values returned by a subquery
+/*
+CREATE TABLE employees (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    salary DECIMAL(10, 2) NOT NULL
+);
+CREATE TABLE managers(
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    salary DECIMAL(10, 2) NOT NULL
+);
+INSERT INTO employees (first_name, last_name, salary)
+VALUES
+('Bob', 'Williams', 45000.00),
+('Charlie', 'Davis', 55000.00),
+('David', 'Jones', 50000.00),
+('Emma', 'Brown', 48000.00),
+('Frank', 'Miller', 52000.00),
+('Grace', 'Wilson', 49000.00),
+('Harry', 'Taylor', 53000.00),
+('Ivy', 'Moore', 47000.00),
+('Jack', 'Anderson', 56000.00),
+('Kate', 'Hill',  44000.00),
+('Liam', 'Clark', 59000.00),
+('Mia', 'Parker', 42000.00);
+INSERT INTO managers(first_name, last_name, salary)
+VALUES
+('John', 'Doe',  60000.00),
+('Jane', 'Smith', 55000.00),
+('Alice', 'Johnson',  58000.00);
+*/
+
+SELECT * FROM employees;
+SELECT * FROM managers;
+
+-- The following statement uses the ANY operator to find employees who have the salary the same as manager:
+-- First, execute the subquery in the ANY operator that returns the salary of managers:
+select salary from managers;
+-- Second, compare the salary of each row in the employees table with the values returned by the subquery and include the row that has a salary equal to the one in the set (60K, 55K, and 58K).
+select * from employees
+where salary = ANY (select salary from managers);
+
+-- find manager salary ie 55k (from above query) and get records with salary > 55k
+select * from employees
+where salary > ANY (select salary from managers);
+
+-- find manager salary ie 55k (from above query) and get records with salary <= 55k
+select * from employees 
+where salary < ANY (select salary from managers);
+
+-- all operator
+-- ALL operator allows you to compare a value with all values in a set returned by a subquery
+/*
+CREATE TABLE factory_employees (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    salary DECIMAL(10, 2) NOT NULL
+);
+
+CREATE TABLE factory_managers(
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(255) NOT NULL,
+    last_name VARCHAR(255) NOT NULL,
+    salary DECIMAL(10, 2) NOT NULL
+);
+
+INSERT INTO factory_employees (first_name, last_name, salary)
+VALUES
+('Bob', 'Williams', 75000.00),
+('Charlie', 'Davis', 55000.00),
+('David', 'Jones', 50000.00),
+('Emma', 'Brown', 48000.00),
+('Frank', 'Miller', 52000.00),
+('Grace', 'Wilson', 49000.00),
+('Harry', 'Taylor', 53000.00),
+('Ivy', 'Moore', 47000.00),
+('Jack', 'Anderson', 56000.00),
+('Kate', 'Hill',  44000.00),
+('Liam', 'Clark', 59000.00),
+('Mia', 'Parker', 42000.00);
+
+INSERT INTO factory_managers(first_name, last_name, salary)
+VALUES
+('John', 'Doe',  60000.00),
+('Jane', 'Smith', 55000.00),
+('Alice', 'Johnson',  58000.00);
+*/
+-- The following example uses the ALL operator for employees who have salaries greater than all managers
+-- select salary from factory_managers;
+select * from factory_employees 
+where salary > ALL (select salary from factory_managers);
+
+-- The following example uses the ALL operator for employees who have salaries lesser than all managers
+select * from factory_employees 
+where salary < ALL (select salary from factory_managers);
+
+-- exists: EXISTS operator to test for the existence of rows in a subquery.
+-- The following example uses the EXISTS operator to check if the payment value is zero exists in the payment table:
+-- The EXISTS operator is a boolean operator that checks the existence of rows in a subquery
+select 1 from payment where amount = 0;
+select exists (select 1 from payment where amount = 0);
+
+-- The following example uses the EXISTS operator to find customers who have paid at least one rental with an amount greater than 11:
+select first_name, last_name
+from customer c
+where exists (select 1 from payment p where p.customer_id = c.customer_id and amount > 11)
+order by first_name, last_name;
+
+-- The following example uses the NOT EXISTS operator to find customers who have not made any payment more than 11.
+select first_name, last_name
+from customer c
+where not exists (select 1 from payment p where p.customer_id = c.customer_id and amount > 11)
+order by first_name, last_name;
+
+-- The following example returns all rows from the customers table because the subquery in the EXISTS operator returns NULL:
+select first_name, last_name
+from customer c
+where exists (select null)
+order by first_name, last_name;
+
+-- Section 8. Common Table Expressions
+-- The following example uses a common table expression (CTE) to select the title and length of films in the 'Action' category and returns all the columns of the CTE:
+WITH action_films AS (
+  SELECT
+    f.title,
+    f.length
+  FROM
+    film f
+    INNER JOIN film_category fc USING (film_id)
+    INNER JOIN category c USING(category_id)
+  WHERE
+    c.name = 'Action'
+)
+SELECT * FROM action_films;
+
+-- The following example join a CTE with a table to find the staff and rental count for each:
+WITH cte_rental AS (
+  SELECT
+    staff_id,
+    COUNT(rental_id) rental_count
+  FROM
+    rental
+  GROUP BY
+    staff_id
+)
+SELECT
+  s.staff_id,
+  first_name,
+  last_name,
+  rental_count
+FROM
+  staff s
+  INNER JOIN cte_rental USING (staff_id);
+/*
+In this example:
+ - First, the CTE returns a result set that includes the staff id and the rental counts.
+ - Then, the main query joins the staff table with the CTE using the staff_id column.
+ */
+
+-- The following example uses multiple CTEs to calculate various statistics related to films and customers:
+WITH film_stats AS (
+    -- CTE 1: Calculate film statistics
+    SELECT
+        AVG(rental_rate) AS avg_rental_rate,
+        MAX(length) AS max_length,
+        MIN(length) AS min_length
+    FROM film
+),
+customer_stats AS (
+    -- CTE 2: Calculate customer statistics
+    SELECT
+        COUNT(DISTINCT customer_id) AS total_customers,
+        SUM(amount) AS total_payments
+    FROM payment
+)
+-- Main query using the CTEs
+SELECT
+    ROUND((SELECT avg_rental_rate FROM film_stats), 2) AS avg_film_rental_rate,
+    (SELECT max_length FROM film_stats) AS max_film_length,
+    (SELECT min_length FROM film_stats) AS min_film_length,
+    (SELECT total_customers FROM customer_stats) AS total_customers,
+    (SELECT total_payments FROM customer_stats) AS total_payments;
+/*
+In this example, we create two CTEs:
+ - film_stats: Calculates statistics related to films including the average rental rate, maximum length, and minimum length.
+ - customer_stats: Calculates statistics related to customers including the total number of distinct customers and the overall payments made.
+ - The main query retrieves specific values from each CTE to create a summary report.
+ */
+
+-- Recursive Query
+/*
+CREATE TABLE corporate_employees (
+  employee_id SERIAL PRIMARY KEY,
+  full_name VARCHAR NOT NULL,
+  manager_id INT
+);
+INSERT INTO corporate_employees (employee_id, full_name, manager_id)
+VALUES
+  (1, 'Michael North', NULL),
+  (2, 'Megan Berry', 1),
+  (3, 'Sarah Berry', 1),
+  (4, 'Zoe Black', 1),
+  (5, 'Tim James', 1),
+  (6, 'Bella Tucker', 2),
+  (7, 'Ryan Metcalfe', 2),
+  (8, 'Max Mills', 2),
+  (9, 'Benjamin Glover', 2),
+  (10, 'Carolyn Henderson', 3),
+  (11, 'Nicola Kelly', 3),
+  (12, 'Alexandra Climo', 3),
+  (13, 'Dominic King', 3),
+  (14, 'Leonard Gray', 4),
+  (15, 'Eric Rampling', 4),
+  (16, 'Piers Paige', 7),
+  (17, 'Ryan Henderson', 7),
+  (18, 'Frank Tucker', 8),
+  (19, 'Nathan Ferguson', 8),
+  (20, 'Kevin Rampling', 8);
+*/
+WITH RECURSIVE subordinates AS (
+  SELECT
+    employee_id,
+    manager_id,
+    full_name
+  FROM
+    corporate_employees
+  WHERE
+    employee_id = 2
+  UNION
+  SELECT
+    e.employee_id,
+    e.manager_id,
+    e.full_name
+  FROM
+    corporate_employees e
+    INNER JOIN subordinates s ON s.employee_id = e.manager_id
+)
+SELECT * FROM subordinates;
+
+-- Section 9. Modifying Data (CRUD operation)
+/*
+CREATE TABLE links (
+  id SERIAL PRIMARY KEY,
+  url VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description VARCHAR (255),
+  last_update DATE
+);
+*/
+INSERT INTO links (url, name)
+VALUES('https://neon.tech/postgresql','PostgreSQL Tutorial');
+
+INSERT INTO links (url, name)
+VALUES('http://www.oreilly.com','O''Reilly Media');
+
+INSERT INTO links (url, name, last_update)
+VALUES('https://www.google.com','Google','2013-06-01');
+
+--  the following statement inserts a new row into the links table and returns the last inserted id
+INSERT INTO links (url, name)
+VALUES('https://www.postgresql.org','PostgreSQL')
+RETURNING id;
+
+-- insert multiple rows
+/*
+CREATE TABLE contacts (
+    id SERIAL PRIMARY KEY,
+    first_name VARCHAR(50) NOT NULL,
+    last_name VARCHAR(50) NOT NULL,
+    email VARCHAR(384) NOT NULL UNIQUE
+);
+*/
+INSERT INTO contacts (first_name, last_name, email)
+VALUES
+    ('John', 'Doe', 'johndoe@gmail.com'),
+    ('Sachin', 'tendulkar', 'srtendulkar@gmail.com'),
+    ('Bob', 'Johnson', 'bjohnson@gmail.com');
+
+INSERT INTO contacts (first_name, last_name, email)
+VALUES
+    ('Alice', 'Johnson', 'alice@gmail.com'),
+    ('Charlie', 'Brown', 'charlie@gmail.com')
+RETURNING *; -- returns all columns from newly inserted records
+
+INSERT INTO contacts (first_name, last_name, email)
+VALUES
+    ('Eva', 'Williams', 'eva@gmail.com'),
+    ('Michael', 'Miller', 'miller@gmail.com'),
+    ('Sophie', 'Davis', 'sophie@gmail.com')
+RETURNING id; -- returns id column from newly inserted records
+
+-- update
+/*
+CREATE TABLE courses(
+  course_id serial PRIMARY KEY,
+  course_name VARCHAR(255) NOT NULL,
+  price DECIMAL(10,2) NOT NULL,
+  description VARCHAR(500),
+  published_date date
+);
+INSERT INTO courses( course_name, price, description, published_date)
+VALUES
+('PostgreSQL for Developers', 299.99, 'A complete PostgreSQL for Developers', '2020-07-13'),
+('PostgreSQL Admininstration', 349.99, 'A PostgreSQL Guide for DBA', NULL),
+('PostgreSQL High Performance', 549.99, NULL, NULL),
+('PostgreSQL Bootcamp', 777.99, 'Learn PostgreSQL via Bootcamp', '2013-07-11'),
+('Mastering PostgreSQL', 999.98, 'Mastering PostgreSQL in 21 Days', '2012-06-30');
+*/
+SELECT * FROM courses;
+UPDATE courses
+SET published_date = '2020-08-01'
+WHERE course_id = 3;
+
+UPDATE courses
+SET published_date = '2020-07-01'
+WHERE course_id = 2
+RETURNING *;
+
+-- UPDATE courses SET price = price * 1.05;
+
+-- uodate-join: update data in a table based on values in another table
+/*
+UPDATE table1
+SET table1.c1 = new_value
+FROM table2
+WHERE table1.c2 = table2.c2;
+*/
+
+/*
+CREATE TABLE product_segment (
+    id SERIAL PRIMARY KEY,
+    segment VARCHAR NOT NULL,
+    discount NUMERIC (4, 2)
+);
+INSERT INTO
+    product_segment (segment, discount)
+VALUES
+    ('Grand Luxury', 0.05),
+    ('Luxury', 0.06),
+    ('Mass', 0.1);
+
+CREATE TABLE product(
+    id SERIAL PRIMARY KEY,
+    name VARCHAR NOT NULL,
+    price NUMERIC(10,2),
+    net_price NUMERIC(10,2),
+    segment_id INT NOT NULL,
+    FOREIGN KEY(segment_id) REFERENCES product_segment(id)
+);
+INSERT INTO
+    product (name, price, segment_id)
+VALUES
+    ('diam', 804.89, 1),
+    ('vestibulum aliquet', 228.55, 3),
+    ('lacinia erat', 366.45, 2),
+    ('scelerisque quam turpis', 145.33, 3),
+    ('justo lacinia', 551.77, 2),
+    ('ultrices mattis odio', 261.58, 3),
+    ('hendrerit', 519.62, 2),
+    ('in hac habitasse', 843.31, 1),
+    ('orci eget orci', 254.18, 3),
+    ('pellentesque', 427.78, 2),
+    ('sit amet nunc', 936.29, 1),
+    ('sed vestibulum', 910.34, 1),
+    ('turpis eget', 208.33, 3),
+    ('cursus vestibulum', 985.45, 1),
+    ('orci nullam', 841.26, 1),
+    ('est quam pharetra', 896.38, 1),
+    ('posuere', 575.74, 2),
+    ('ligula', 530.64, 2),
+    ('convallis', 892.43, 1),
+    ('nulla elit ac', 161.71, 3);
+*/
+UPDATE product
+SET net_price = price - price * discount
+FROM product_segment
+WHERE product.segment_id = product_segment.id;
+
+-- delete
+/*CREATE TABLE todos (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    completed BOOLEAN NOT NULL DEFAULT false
+);
+INSERT INTO todos (title, completed) VALUES
+    ('Learn basic SQL syntax', true),
+    ('Practice writing SELECT queries', false),
+    ('Study PostgreSQL data types', true),
+    ('Create and modify tables', false),
+    ('Explore advanced SQL concepts', true),
+    ('Understand indexes and optimization', false),
+    ('Backup and restore databases', true),
+    ('Implement transactions', false),
+    ('Master PostgreSQL security features', true),
+    ('Build a sample application with PostgreSQL', false);
+*/
+SELECT * FROM todos;
+
+DELETE FROM todos WHERE id = 1;
+
+DELETE FROM todos WHERE id = 2
+RETURNING *;
+
+DELETE FROM todos
+WHERE completed = true
+RETURNING *;
+
+-- DELETE FROM todos; -- delete all records
+
+-- delete join
+-- PostgreSQL does not support the DELETE JOIN statement like MySQL. Instead, it offers the USING clause in the DELETE statement that provides similar functionality to the DELETE JOIN.
+/*
+DELETE FROM t1
+USING t2
+WHERE t1.id = t2.id
+RETURNING *;
+*/
+
+/*
+CREATE TABLE member(
+   id SERIAL PRIMARY KEY,
+   first_name VARCHAR(50) NOT NULL,
+   last_name VARCHAR(50) NOT NULL,
+   phone VARCHAR(15) NOT NULL
+);
+CREATE TABLE denylist(
+    phone VARCHAR(15) PRIMARY KEY
+);
+INSERT INTO member(first_name, last_name, phone)
+VALUES ('John','Doe','(408)-523-9874'),
+       ('Jane','Doe','(408)-511-9876'),
+       ('Lily','Bush','(408)-124-9221');
+INSERT INTO denylist(phone)
+VALUES ('(408)-523-9874'),
+       ('(408)-511-9876');
+*/
+SELECT * FROM member;
+SELECT * FROM denylist;
+
+DELETE FROM member
+USING denylist
+WHERE member.phone = denylist.phone;
+
+-- First, the subquery returns a list of phones from the denylist table
+-- Second, the DELETE statement deletes rows in the member table whose values in the phone column are in the list of phones returned by the subquery.
+DELETE FROM member
+WHERE phone IN (select phone from denylist);
+
+-- upsert
+/*
+CREATE TABLE product_inventory(
+   id INT PRIMARY KEY,
+   name VARCHAR(255) NOT NULL,
+   price DECIMAL(10,2) NOT NULL,
+   quantity INT NOT NULL
+);
+INSERT INTO product_inventory(id, name, price, quantity)
+VALUES
+	(1, 'A', 15.99, 100),
+	(2, 'B', 25.49, 50),
+	(3, 'C', 19.95, 75)
+RETURNING *;
+*/
+
+-- do nothing as product already exists
+INSERT INTO product_inventory (id, name, price, quantity)
+VALUES (1, 'A', 16.99, 120)
+ON CONFLICT(id)
+DO nothing;
+
+-- insert new element
+INSERT INTO inventory (id, name, price, quantity)
+VALUES (4, 'D', 29.99, 20)
+ON CONFLICT(id)
+DO UPDATE SET
+  price = EXCLUDED.price,
+  quantity = EXCLUDED.quantity;
+
+-- update existing element
+INSERT INTO inventory (id, name, price, quantity)
+VALUES (4, 'D', 100, 100)
+ON CONFLICT(id)
+DO UPDATE SET
+  price = EXCLUDED.price,
+  quantity = EXCLUDED.quantity;
+
+-- merge
+-- https://neon.tech/postgresql/postgresql-tutorial/postgresql-merge
+
 -- Section 10. Transactions
+
+
+
 -- Section 11. Import & Export Data
 -- Section 12. Managing Tables
 -- Section 13. PostgreSQL Constraints
