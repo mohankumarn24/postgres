@@ -1,3 +1,20 @@
+-- all in one
+select
+	payment_id,
+	sum(amount)
+from
+	payment
+where
+	payment_id is not null
+group by
+	payment_id
+having
+	payment_id > 1
+order by
+	payment asc nulls last
+limit 2 offset 2;
+
+
 -- Section 1. Querying Data
 
 -- select
