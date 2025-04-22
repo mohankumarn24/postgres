@@ -1,3 +1,20 @@
+-- all in one
+select
+	payment_id,
+	sum(amount)
+from
+	payment
+where
+	payment_id is not null
+group by
+	payment_id
+having
+	payment_id > 1
+order by
+	payment asc nulls last
+limit 2 offset 2;
+
+
 -- Section 1. Querying Data
 
 -- select
@@ -2210,7 +2227,8 @@ SELECT
   CASE 
 	  WHEN length > 0 AND length <= 50 THEN 'Short' 
 	  WHEN length > 50 AND length <= 120 THEN 'Medium' 
-	  WHEN length > 120 THEN 'Long' END duration
+	  WHEN length > 120 THEN 'Long' 
+  END duration
 FROM
   film
 ORDER BY
@@ -2255,16 +2273,10 @@ ORDER BY title;
 -- Using simple PostgreSQL CASE expression with aggregate function example
 SELECT
   SUM(CASE rating WHEN 'G' THEN 1 ELSE 0 END) "General Audiences",
-  SUM(
-    CASE rating WHEN 'PG' THEN 1 ELSE 0 END
-  ) "Parental Guidance Suggested",
-  SUM(
-    CASE rating WHEN 'PG-13' THEN 1 ELSE 0 END
-  ) "Parents Strongly Cautioned",
+  SUM(CASE rating WHEN 'PG' THEN 1 ELSE 0 END) "Parental Guidance Suggested",
+  SUM(CASE rating WHEN 'PG-13' THEN 1 ELSE 0 END) "Parents Strongly Cautioned",
   SUM(CASE rating WHEN 'R' THEN 1 ELSE 0 END) "Restricted",
-  SUM(
-    CASE rating WHEN 'NC-17' THEN 1 ELSE 0 END
-  ) "Adults Only"
+  SUM(CASE rating WHEN 'NC-17' THEN 1 ELSE 0 END) "Adults Only"
 FROM
   film;
 
@@ -2292,25 +2304,37 @@ VALUES
 
 SELECT
   product,
+  price, 
+  discount,
   (price - discount) AS net_price
 FROM
   items;
 
 SELECT
   product,
-  (
-    price - COALESCE(discount, 0)
-  ) AS net_price
+  price, 
+  discount,
+  (price - COALESCE(discount, 0)) AS net_price
 FROM
   items;
 
 SELECT
   product,
-  (
-    price - CASE WHEN discount IS NULL THEN 0 ELSE discount END
-  ) AS net_price
+  price, 
+  discount,
+  (price - CASE 
+	  			WHEN discount IS NULL THEN 0 ELSE discount 
+	  	   END) AS net_price
 FROM
   items;
+
+-- IS NULL
+/*
+SELECT
+    CASE 
+	    WHEN expression IS NULL THEN replacement ELSE expression
+    END AS column_alias;
+*/
 
 -- NULLIF 
 /*
